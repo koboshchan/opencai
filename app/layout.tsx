@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OpenCAI",
+  title: "OpenCai",
   description: "Create characters, manage models, and chat through a server-side AI proxy.",
 };
 

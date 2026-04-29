@@ -10,7 +10,7 @@ export default async function Home() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
       <div className="flex flex-col items-center gap-8 p-8 rounded-2xl border border-white/10 bg-white/5 shadow-lg">
-        <h1 className="text-3xl font-bold tracking-tight">OpenCAI</h1>
+        <h1 className="text-3xl font-bold tracking-tight">OpenCai</h1>
         <div className="flex gap-4">
           <Link
             href="/sign-up"

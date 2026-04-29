@@ -1,6 +1,6 @@
-# OpenCAI
+# OpenCai
 
-OpenCAI is a Next.js 16 app for creating AI characters, keeping them public or private, and chatting with them through a server-side OpenAI-compatible proxy.
+OpenCai is a Next.js 16 app for creating AI characters, keeping them public or private, and chatting with them through a server-side OpenAI-compatible proxy.
 
 It uses Clerk for authentication, MongoDB for persistence, and an admin-managed provider registry so browser clients never receive provider API keys or raw endpoints.
 
