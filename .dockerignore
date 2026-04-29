@@ -1,0 +1,11 @@
+node_modules
+.next
+mongodata
+data
+dist
+*.log
+.env*
+.git
+.gitignore
+Dockerfile
+docker-compose.yml
