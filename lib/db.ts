@@ -1,29 +1,38 @@
 import { Db, MongoClient, ObjectId, ServerApiVersion } from "mongodb";
 
-const uri = process.env.MONGODB_URI;
-const databaseName = process.env.MONGODB_DB_NAME || "opencai";
+import { ApiError } from "@/lib/errors";
 
-if (!uri) {
-  throw new Error("Missing MONGODB_URI environment variable.");
-}
+const databaseName = process.env.MONGODB_DB_NAME || "opencai";
 
 declare global {
   var __mongoClientPromise__: Promise<MongoClient> | undefined;
   var __dbSetupPromise__: Promise<void> | undefined;
 }
 
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
-});
+function getMongoUri() {
+  const uri = process.env.MONGODB_URI;
 
-const clientPromise = global.__mongoClientPromise__ || client.connect();
+  if (!uri) {
+    throw new Error("Missing MONGODB_URI environment variable.");
+  }
 
-if (process.env.NODE_ENV !== "production") {
-  global.__mongoClientPromise__ = clientPromise;
+  return uri;
+}
+
+function getClientPromise() {
+  if (!global.__mongoClientPromise__) {
+    const client = new MongoClient(getMongoUri(), {
+      serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+      },
+    });
+
+    global.__mongoClientPromise__ = client.connect();
+  }
+
+  return global.__mongoClientPromise__;
 }
 
 async function setupDatabase(db: Db) {
@@ -45,7 +54,7 @@ async function setupDatabase(db: Db) {
 }
 
 export async function getDb() {
-  const connectedClient = await clientPromise;
+  const connectedClient = await getClientPromise();
   const db = connectedClient.db(databaseName);
 
   if (!global.__dbSetupPromise__) {
@@ -58,7 +67,7 @@ export async function getDb() {
 
 export function parseObjectId(id: string, label = "id") {
   if (!ObjectId.isValid(id)) {
-    throw new Error(`Invalid ${label}.`);
+    throw new ApiError(400, `Invalid ${label}.`);
   }
 
   return new ObjectId(id);
