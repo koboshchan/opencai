@@ -6,6 +6,7 @@ import { getDb } from "@/lib/db";
 import { getEnabledModels } from "@/lib/providers";
 import { CharacterDocument } from "@/lib/types";
 
+import { ImportCharacterBox } from "./ImportCharacterBox";
 import { CharactersDashboard } from "./characters-dashboard";
 
 export default async function CharactersPage() {
@@ -52,6 +53,7 @@ export default async function CharactersPage() {
           <UserButton />
         </div>
       </div>
+      <ImportCharacterBox />
       <CharactersDashboard
         initialCharacters={characters.map((character) => ({
           id: character._id!.toString(),

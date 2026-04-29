@@ -35,6 +35,12 @@ export function AdminModelsConsole({
   const [name, setName] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
+  const [caiToken, setCaiToken] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('caiToken') || '';
+    }
+    return '';
+  });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -152,6 +158,24 @@ export function AdminModelsConsole({
 
   return (
     <div className="mx-auto mt-10 grid max-w-6xl gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+      <section className="rounded-[1.5rem] border border-white/10 bg-slate-900/60 p-6">
+        <h2 className="text-xl font-semibold">Character AI Token</h2>
+        <p className="mt-2 text-sm text-slate-400">
+          This token is used only for importing CAI characters and is not related to LLM providers. It is stored locally in your browser.
+        </p>
+        <input
+          value={caiToken}
+          onChange={(event) => {
+            setCaiToken(event.target.value);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('caiToken', event.target.value);
+            }
+          }}
+          placeholder="Paste your CAI token here"
+          className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 mb-4"
+          autoComplete="off"
+        />
+      </section>
       <section className="rounded-[1.5rem] border border-white/10 bg-slate-900/60 p-6">
         <h2 className="text-xl font-semibold">Add provider</h2>
         <p className="mt-2 text-sm text-slate-400">

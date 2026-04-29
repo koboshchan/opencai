@@ -3,7 +3,7 @@ FROM node:lts-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files and install all dependencies (including devDependencies for build)
+RUN apk add --no-cache make g++
 COPY package*.json ./
 RUN npm ci
 
@@ -33,7 +33,8 @@ FROM node:lts-alpine AS runner
 
 WORKDIR /app
 
-# Copy only production dependencies
+
+RUN apk add --no-cache make g++
 COPY package*.json ./
 RUN npm ci --only=production
 
