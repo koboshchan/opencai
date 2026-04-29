@@ -40,7 +40,7 @@ async function setupDatabase(db: Db) {
     db.collection("users").createIndex({ clerkUserId: 1 }, { unique: true }),
     db.collection("characters").createIndex({ ownerClerkUserId: 1, visibility: 1 }),
     db.collection("characters").createIndex({ visibility: 1, deletedAt: 1 }),
-    db.collection("characters").createIndex({ name: "text", description: "text", tags: "text" }),
+    // Text index removed due to APIStrictError
     db.collection("chats").createIndex({ ownerClerkUserId: 1, updatedAt: -1 }),
     db.collection("chats").createIndex({ characterId: 1, ownerClerkUserId: 1 }),
     db.collection("chatMessages").createIndex({ chatId: 1, createdAt: 1 }),
