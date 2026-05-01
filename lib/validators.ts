@@ -11,6 +11,11 @@ export const createCharacterSchema = z.object({
   tags: z.array(z.string().trim().min(1).max(32)).max(10).default([]),
 });
 
+export const importCharacterSchema = z.object({
+  url: z.string().trim().url(),
+  visibility: visibilitySchema.default("private"),
+});
+
 export const updateCharacterSchema = createCharacterSchema.partial().refine(
   (value) => Object.keys(value).length > 0,
   "At least one field must be provided.",

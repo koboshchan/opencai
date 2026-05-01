@@ -1,5 +1,35 @@
-import { NextRequest, NextResponse } from "next/server";
+import { requireViewer } from "@/lib/auth";
+import { getDb } from "@/lib/db";
 import { getCharacterInfo } from "@/lib/characterai";
+import { toErrorResponse } from "@/lib/errors";
+import { CharacterDocument } from "@/lib/types";
+import { importCharacterSchema } from "@/lib/validators";
+
+function createSlug(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "")
+    .slice(0, 60);
+}
+
+function buildSystemPrompt(character: {
+  name: string;
+  title?: string;
+  description?: string;
+  greeting?: string;
+}) {
+  const sections = [
+    `You are ${character.name}.`,
+    character.title,
+    character.description,
+    character.greeting ? `Greeting style: ${character.greeting}` : undefined,
+  ]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
+
+  return sections.join("\n\n");
+}
 
 // Helper to extract character id from various character.ai URLs
 function extractCharacterId(url: string): string | null {
@@ -18,52 +48,55 @@ function extractCharacterId(url: string): string | null {
   }
 }
 
-export async function POST(req: NextRequest) {
-  const { url } = await req.json();
-  if (!url || typeof url !== "string") {
-    return NextResponse.json({ error: "Missing or invalid url" }, { status: 400 });
-  }
-
-  let charId = extractCharacterId(url);
-
-  // If not found, try to resolve share.character.ai shortlink
-  if (!charId && url.includes("share.character.ai")) {
-    try {
-      const res = await fetch(url, { method: "GET", redirect: "manual" });
-      const location = res.headers.get("location");
-      if (location) {
-        const match = location.match(/[?&]char=([\w-]+)/);
-        if (match) charId = match[1];
-      }
-    } catch {
-      return NextResponse.json({ error: "Failed to resolve shortlink" }, { status: 400 });
-    }
-  }
-
-  if (!charId) {
-    return NextResponse.json({ error: "Could not extract character id from url" }, { status: 400 });
-  }
-
-  // Fetch character info from CharacterAI (manual implementation)
+export async function POST(req: Request) {
   try {
-    // You must provide a valid token for the CharacterAI API
-    const token = req.headers.get('x-characterai-token');
-    if (!token) {
-      return NextResponse.json({ error: 'Missing x-characterai-token header' }, { status: 400 });
+    const viewer = await requireViewer();
+    const payload = importCharacterSchema.parse(await req.json());
+    let charId = extractCharacterId(payload.url);
+
+    // If not found, try to resolve share.character.ai shortlink
+    if (!charId && payload.url.includes("share.character.ai")) {
+      try {
+        const res = await fetch(payload.url, { method: "GET", redirect: "manual" });
+        const location = res.headers.get("location");
+        if (location) {
+          const match = location.match(/[?&]char=([\w-]+)/);
+          if (match) charId = match[1];
+        }
+      } catch {
+        return Response.json({ error: "Failed to resolve shortlink" }, { status: 400 });
+      }
     }
-    const character = await getCharacterInfo(charId, token);
-    return NextResponse.json({
-      id: character.external_id,
-      name: character.name,
-      description: character.description,
-      greeting: character.greeting,
-      avatar: character.avatar_file_name,
-      visibility: character.visibility,
-      definition: character.title,
-      // ...add more fields as needed
-    });
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Failed to fetch character info";
-    return NextResponse.json({ error: message }, { status: 500 });
+
+    if (!charId) {
+      return Response.json({ error: "Could not extract character id from url" }, { status: 400 });
+    }
+
+    const token = req.headers.get("x-characterai-token");
+    if (!token) {
+      return Response.json({ error: "Missing x-characterai-token header" }, { status: 400 });
+    }
+
+    const imported = await getCharacterInfo(charId, token);
+    const db = await getDb();
+    const now = new Date();
+    const character: CharacterDocument = {
+      ownerClerkUserId: viewer.clerkUserId,
+      name: imported.name,
+      slug: createSlug(imported.name),
+      description: imported.description?.trim() || imported.title?.trim() || "Imported character",
+      systemPrompt: buildSystemPrompt(imported),
+      visibility: payload.visibility,
+      avatarUrl: imported.avatar_file_name ? `https://characterai.io/i/80/static/avatars/${imported.avatar_file_name}` : null,
+      tags: imported.categories?.slice(0, 10) ?? [],
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    };
+    await db.collection<CharacterDocument>("characters").insertOne(character);
+
+    return Response.json({ ok: true }, { status: 201 });
+  } catch (error) {
+    return toErrorResponse(error);
   }
 }
