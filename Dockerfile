@@ -46,6 +46,14 @@ COPY --from=builder /app/proxy.ts ./proxy.ts
 COPY --from=builder /app/postcss.config.mjs ./postcss.config.mjs
 COPY --from=builder /app/eslint.config.mjs ./eslint.config.mjs
 
+# Copy header-generator data files for got-scraping to work in production
+COPY --from=builder /app/node_modules/header-generator/data_files ./node_modules/header-generator/data_files
+
+# Next.js bundled runtime may resolve __dirname under /ROOT in server chunks.
+# Mirror the same data files there so header-generator can load its assets.
+RUN mkdir -p /ROOT/node_modules/header-generator
+COPY --from=builder /app/node_modules/header-generator/data_files /ROOT/node_modules/header-generator/data_files
+
 # Runtime secrets (CLERK_SECRET_KEY, MONGODB_URI, etc.) are injected by docker-compose, not baked in
 
 EXPOSE 3000
