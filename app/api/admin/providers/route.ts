@@ -3,7 +3,6 @@ import { requireAdminViewer } from "@/lib/auth";
 import { encryptSecret } from "@/lib/crypto";
 import { getDb } from "@/lib/db";
 import { toErrorResponse } from "@/lib/errors";
-import { maskSecret } from "@/lib/providers";
 import { providerSchema } from "@/lib/validators";
 
 export async function GET() {
@@ -21,7 +20,6 @@ export async function GET() {
         id: provider._id!.toString(),
         name: provider.name,
         baseUrl: provider.baseUrl,
-        apiKeyPreview: maskSecret(provider.encryptedApiKey),
         isActive: provider.isActive,
         createdAt: provider.createdAt.toISOString(),
         updatedAt: provider.updatedAt.toISOString(),
@@ -56,7 +54,6 @@ export async function POST(request: Request) {
           name: provider.name,
           baseUrl: provider.baseUrl,
           isActive: provider.isActive,
-          apiKeyPreview: maskSecret(payload.apiKey),
         },
       },
       { status: 201 },

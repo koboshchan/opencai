@@ -13,24 +13,6 @@ function createSlug(name: string) {
     .slice(0, 60);
 }
 
-function buildSystemPrompt(character: {
-  name: string;
-  title?: string;
-  description?: string;
-  greeting?: string;
-}) {
-  const sections = [
-    `You are ${character.name}.`,
-    character.title,
-    character.description,
-    character.greeting ? `Greeting style: ${character.greeting}` : undefined,
-  ]
-    .map((value) => value?.trim())
-    .filter((value): value is string => Boolean(value));
-
-  return sections.join("\n\n");
-}
-
 // Helper to extract character id from various character.ai URLs
 function extractCharacterId(url: string): string | null {
   try {
@@ -84,8 +66,8 @@ export async function POST(req: Request) {
       ownerClerkUserId: viewer.clerkUserId,
       name: imported.name,
       slug: createSlug(imported.name),
-      description: imported.description?.trim() || imported.title?.trim() || "Imported character",
-      systemPrompt: buildSystemPrompt(imported),
+      description: imported.title?.trim() || "Imported character",
+      systemPrompt: [imported.description, imported.greeting].filter(Boolean).join("\n\n"),
       visibility: payload.visibility,
       avatarUrl: imported.avatar_file_name ? `https://characterai.io/i/80/static/avatars/${imported.avatar_file_name}` : null,
       tags: imported.categories?.slice(0, 10) ?? [],

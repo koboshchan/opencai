@@ -1,3 +1,6 @@
+import fs from "fs";
+import path from "path";
+
 import {
   CharacterDocument,
   ChatDocument,
@@ -8,6 +11,24 @@ import { getDb, parseObjectId } from "@/lib/db";
 import { ApiError, toErrorResponse } from "@/lib/errors";
 import { resolveEnabledModel, streamChatCompletion } from "@/lib/providers";
 import { createMessageSchema } from "@/lib/validators";
+
+let cachedSystemTemplate: string | null = null;
+
+function getSystemTemplate(): string {
+  if (!cachedSystemTemplate) {
+    const filePath = path.join(process.cwd(), "public", "system.md");
+    cachedSystemTemplate = fs.readFileSync(filePath, "utf-8");
+  }
+  return cachedSystemTemplate;
+}
+
+function buildSystemMessage(character: CharacterDocument): string {
+  const template = getSystemTemplate();
+  return template
+    .replace(/\{\{name\}\}/g, character.name)
+    .replace(/\{\{description\}\}/g, character.systemPrompt)
+    .replace(/\{\{title\}\}/g, character.description);
+}
 
 async function getOwnedChat(chatId: string, clerkUserId: string) {
   const db = await getDb();
@@ -127,7 +148,7 @@ export async function POST(
     const llmMessages = [
       {
         role: "system",
-        content: character.systemPrompt,
+        content: buildSystemMessage(character),
       },
       ...history.map((message) => ({
         role: message.role,
