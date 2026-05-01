@@ -1,5 +1,4 @@
 // Manual implementation of getCharacterInfo based on https://github.com/realcoloride/node_characterai/blob/2.0/src/character/character.ts
-import { gotScraping } from "got-scraping";
 
 export interface CharacterInfo {
   external_id?: string;
@@ -42,6 +41,7 @@ export async function getCharacterInfo(
   characterId: string,
   token: string,
 ): Promise<CharacterInfo> {
+  const { gotScraping } = await import("got-scraping");
   const url = "https://neo.character.ai/character/v1/get_character_info";
   const idempotencyKey = String(Math.floor(Math.random() * 1e20));
 
