@@ -15,37 +15,6 @@ interface ChatRoomProps {
   initialMessages: Message[];
 }
 
-function splitSseEvents(buffer: string) {
-  const parts = buffer.split("\n\n");
-  const remainder = parts.pop() ?? "";
-
-  return {
-    events: parts,
-    remainder,
-  };
-}
-
-function readAssistantDelta(event: string) {
-  const data = event
-    .split(/\r?\n/)
-    .filter((line) => line.startsWith("data:"))
-    .map((line) => line.slice(5).trimStart())
-    .join("\n");
-
-  if (!data || data === "[DONE]") {
-    return "";
-  }
-
-  try {
-    const payload = JSON.parse(data) as {
-      choices?: Array<{ delta?: { content?: string } }>;
-    };
-    return payload.choices?.[0]?.delta?.content ?? "";
-  } catch {
-    return "";
-  }
-}
-
 export function ChatRoom({ chatId, characterName, initialMessages }: ChatRoomProps) {
   const [messages, setMessages] = useState(initialMessages);
   const [draft, setDraft] = useState("");
@@ -107,7 +76,6 @@ export function ChatRoom({ chatId, characterName, initialMessages }: ChatRoomPro
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let buffer = "";
       let assistantText = "";
 
       while (true) {
@@ -117,14 +85,8 @@ export function ChatRoom({ chatId, characterName, initialMessages }: ChatRoomPro
           break;
         }
 
-        buffer += decoder.decode(value, { stream: true });
-        const { events, remainder } = splitSseEvents(buffer);
-        buffer = remainder;
-
-        for (const eventChunk of events) {
-          assistantText += readAssistantDelta(eventChunk);
-          setStreamingMessage(assistantText);
-        }
+        assistantText += decoder.decode(value, { stream: true });
+        setStreamingMessage(assistantText);
       }
 
       if (assistantText.trim()) {

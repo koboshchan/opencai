@@ -1,3 +1,5 @@
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { ModelMessage, streamText } from "ai";
 import { ObjectId } from "mongodb";
 
 import { recordAuditLog } from "@/lib/audit";
@@ -165,7 +167,7 @@ interface StreamOptions {
   actorClerkUserId: string;
   provider: ProviderDocument & { _id: ObjectId };
   model: ProviderModelDocument & { _id: ObjectId };
-  messages: Array<{ role: string; content: string }>;
+  messages: ModelMessage[];
   onComplete: (result: {
     assistantText: string;
     promptTokens: number | null;
@@ -174,186 +176,44 @@ interface StreamOptions {
   }) => Promise<void>;
 }
 
-function splitSseEvents(buffer: string) {
-  const parts = buffer.split("\n\n");
-  const remainder = parts.pop() ?? "";
-
-  return {
-    events: parts,
-    remainder,
-  };
-}
-
-function extractEventData(event: string) {
-  const lines = event.split(/\r?\n/);
-  const data = lines
-    .filter((line) => line.startsWith("data:"))
-    .map((line) => line.slice(5).trimStart())
-    .join("\n");
-
-  return data || null;
-}
-
 export async function streamChatCompletion(options: StreamOptions) {
-  const response = await fetch(
-    `${normalizeBaseUrl(options.provider.baseUrl)}/chat/completions`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${decryptSecret(options.provider.encryptedApiKey)}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: options.model.remoteModelId,
-        messages: options.messages,
-        stream: true,
-      }),
-      cache: "no-store",
-    },
-  );
+  const apiKey = decryptSecret(options.provider.encryptedApiKey);
+  const aiProvider = createOpenAICompatible({
+    name: options.provider.name,
+    apiKey,
+    baseURL: normalizeBaseUrl(options.provider.baseUrl),
+  });
 
-  if (!response.ok || !response.body) {
-    const body = await response.text();
-    throw new ApiError(response.status || 502, "Provider chat completion failed.", {
-      provider: options.provider.name,
-      body: body.slice(0, 1000),
-    });
-  }
+  const result = streamText({
+    model: aiProvider(options.model.remoteModelId),
+    messages: options.messages,
+    onFinish: async ({ text, usage, finishReason }) => {
+      const promptTokens = usage.inputTokens ?? null;
+      const completionTokens = usage.outputTokens ?? null;
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let assistantText = "";
-  let promptTokens: number | null = null;
-  let completionTokens: number | null = null;
-  let finishReason: string | null = null;
+      await options.onComplete({
+        assistantText: text,
+        promptTokens,
+        completionTokens,
+        finishReason: finishReason ?? null,
+      });
 
-  const stream = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-
-          if (done) {
-            break;
-          }
-
-          if (value) {
-            controller.enqueue(value);
-            buffer += decoder.decode(value, { stream: true });
-
-            const { events, remainder } = splitSseEvents(buffer);
-            buffer = remainder;
-
-            for (const event of events) {
-              const data = extractEventData(event);
-
-              if (!data || data === "[DONE]") {
-                continue;
-              }
-
-              try {
-                const payload = JSON.parse(data) as {
-                  choices?: Array<{
-                    delta?: { content?: string };
-                    finish_reason?: string | null;
-                  }>;
-                  usage?: {
-                    prompt_tokens?: number;
-                    completion_tokens?: number;
-                  };
-                };
-                const choice = payload.choices?.[0];
-
-                if (choice?.delta?.content) {
-                  assistantText += choice.delta.content;
-                }
-
-                if (choice?.finish_reason) {
-                  finishReason = choice.finish_reason;
-                }
-
-                if (payload.usage) {
-                  promptTokens = payload.usage.prompt_tokens ?? promptTokens;
-                  completionTokens = payload.usage.completion_tokens ?? completionTokens;
-                }
-              } catch {
-                continue;
-              }
-            }
-          }
-        }
-
-        if (buffer.trim()) {
-          const data = extractEventData(buffer);
-
-          if (data && data !== "[DONE]") {
-            try {
-              const payload = JSON.parse(data) as {
-                choices?: Array<{
-                  delta?: { content?: string };
-                  finish_reason?: string | null;
-                }>;
-                usage?: {
-                  prompt_tokens?: number;
-                  completion_tokens?: number;
-                };
-              };
-              const choice = payload.choices?.[0];
-
-              if (choice?.delta?.content) {
-                assistantText += choice.delta.content;
-              }
-
-              if (choice?.finish_reason) {
-                finishReason = choice.finish_reason;
-              }
-
-              if (payload.usage) {
-                promptTokens = payload.usage.prompt_tokens ?? promptTokens;
-                completionTokens = payload.usage.completion_tokens ?? completionTokens;
-              }
-            } catch {
-              // Ignore malformed trailing event payloads.
-            }
-          }
-        }
-
-        await options.onComplete({
-          assistantText,
+      await recordAuditLog({
+        actorClerkUserId: options.actorClerkUserId,
+        action: "chat_completion",
+        resourceType: "providerModel",
+        resourceId: options.model._id.toString(),
+        metadata: {
+          providerId: options.provider._id.toString(),
+          providerName: options.provider.name,
+          remoteModelId: options.model.remoteModelId,
           promptTokens,
           completionTokens,
           finishReason,
-        });
-
-        await recordAuditLog({
-          actorClerkUserId: options.actorClerkUserId,
-          action: "chat_completion",
-          resourceType: "providerModel",
-          resourceId: options.model._id.toString(),
-          metadata: {
-            providerId: options.provider._id.toString(),
-            providerName: options.provider.name,
-            remoteModelId: options.model.remoteModelId,
-            promptTokens,
-            completionTokens,
-            finishReason,
-          },
-        });
-
-        controller.close();
-      } catch (error) {
-        controller.error(error);
-      }
+        },
+      });
     },
   });
 
-  return new Response(stream, {
-    status: response.status,
-    headers: {
-      "Content-Type": response.headers.get("content-type") || "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-    },
-  });
+  return result.toTextStreamResponse();
 }

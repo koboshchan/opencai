@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
 
+import { ModelMessage } from "ai";
+
 import {
   CharacterDocument,
   ChatDocument,
@@ -145,13 +147,13 @@ export async function POST(
       .find({ chatId: chat._id })
       .sort({ createdAt: 1 })
       .toArray();
-    const llmMessages = [
+    const llmMessages: ModelMessage[] = [
       {
         role: "system",
         content: buildSystemMessage(character),
       },
       ...history.map((message) => ({
-        role: message.role,
+        role: message.role as "user" | "assistant",
         content: message.content,
       })),
     ];
