@@ -10,6 +10,8 @@ export interface UserDocument {
   displayName: string | null;
   imageUrl: string | null;
   isAdmin: boolean;
+  telegramUserId?: number;
+  telegramUsername?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

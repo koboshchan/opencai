@@ -75,6 +75,31 @@ async function getUserRecord(collection: Collection<UserDocument>, clerkUserId: 
 }
 
 export async function requireViewer(): Promise<ViewerContext> {
+  // Check for Telegram Bot authorization
+  try {
+    const { headers } = await import("next/headers");
+    const headersList = await headers();
+    const authHeader = headersList.get("authorization");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.substring(7);
+      if (token && token === process.env.TELEGRAM_BOT_SECRET) {
+        const clerkUserId = headersList.get("x-clerk-user-id");
+        if (clerkUserId) {
+          const db = await getDb();
+          const user = await db.collection<UserDocument>("users").findOne({ clerkUserId });
+          if (user) {
+            return {
+              clerkUserId: user.clerkUserId,
+              user,
+            };
+          }
+        }
+      }
+    }
+  } catch {
+    // headers() might throw outside of request context, ignore and fallback
+  }
+
   const session = await auth();
 
   if (!session.userId) {
