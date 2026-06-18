@@ -24,12 +24,13 @@ function getSystemTemplate(): string {
   return cachedSystemTemplate;
 }
 
-function buildSystemMessage(character: CharacterDocument): string {
+function buildSystemMessage(character: CharacterDocument, userName: string): string {
   const template = getSystemTemplate();
   return template
     .replace(/\{\{name\}\}/g, character.name)
     .replace(/\{\{description\}\}/g, character.systemPrompt)
-    .replace(/\{\{title\}\}/g, character.description);
+    .replace(/\{\{title\}\}/g, character.description)
+    .replace(/\{\{user\}\}/g, userName);
 }
 
 async function getOwnedChat(chatId: string, clerkUserId: string) {
@@ -150,7 +151,7 @@ export async function POST(
     const llmMessages: ModelMessage[] = [
       {
         role: "system",
-        content: buildSystemMessage(character),
+        content: buildSystemMessage(character, viewer.user.displayName || "User"),
       },
       ...history.map((message) => ({
         role: message.role as "user" | "assistant",

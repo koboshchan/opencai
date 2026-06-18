@@ -2,8 +2,9 @@ import { requireViewer } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { getCharacterInfo } from "@/lib/characterai";
 import { toErrorResponse } from "@/lib/errors";
-import { CharacterDocument } from "@/lib/types";
+import { AppStateDocument, CharacterDocument } from "@/lib/types";
 import { importCharacterSchema } from "@/lib/validators";
+import { decryptSecret } from "@/lib/crypto";
 
 function createSlug(name: string) {
   return name
@@ -54,13 +55,14 @@ export async function POST(req: Request) {
       return Response.json({ error: "Could not extract character id from url" }, { status: 400 });
     }
 
-    const token = req.headers.get("x-characterai-token");
-    if (!token) {
-      return Response.json({ error: "Missing x-characterai-token header" }, { status: 400 });
+    const db = await getDb();
+    const doc = await db.collection<AppStateDocument>("appState").findOne({ key: "cai-token" });
+    if (!doc || !doc.value) {
+      return Response.json({ error: "Character.AI import is not configured by the admin (missing token)." }, { status: 400 });
     }
+    const token = decryptSecret(doc.value);
 
     const imported = await getCharacterInfo(charId, token);
-    const db = await getDb();
     const now = new Date();
     const character: CharacterDocument = {
       ownerClerkUserId: viewer.clerkUserId,

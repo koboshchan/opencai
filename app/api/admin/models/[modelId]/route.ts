@@ -27,6 +27,13 @@ export async function PATCH(
 
     if (typeof payload.isEnabled === "boolean") {
       updatePayload.isEnabled = payload.isEnabled;
+      if (payload.isEnabled) {
+        // Disable all other models
+        await db.collection<ProviderModelDocument>("providerModels").updateMany(
+          { _id: { $ne: model._id } },
+          { $set: { isEnabled: false, updatedAt: new Date() } },
+        );
+      }
     }
 
     if (payload.displayName) {
