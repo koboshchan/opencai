@@ -32,28 +32,29 @@ export default async function CharactersPage() {
   const models = await getEnabledModels();
 
   return (
-    <main className="min-h-screen bg-slate-950 px-6 py-10 text-white">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-        <div>
-          <p className="text-sm uppercase tracking-[0.3em] text-cyan-300">OpenCai</p>
-          <h1 className="mt-2 text-3xl font-semibold">Characters</h1>
-          <p className="mt-2 text-slate-400">
-            Create public or private characters and start chats against enabled models.
-          </p>
+    <main>
+      <header>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <strong>OpenCai</strong>
+            <h1>Characters</h1>
+            <p>
+              Create public or private characters and start chats against enabled models.
+            </p>
+          </div>
+          <div>
+            {viewer.user.isAdmin ? (
+              <Link href="/admin/models" style={{ marginRight: "15px" }}>
+                Admin models
+              </Link>
+            ) : null}
+            <UserButton />
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          {viewer.user.isAdmin ? (
-            <Link
-              href="/admin/models"
-              className="rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
-            >
-              Admin models
-            </Link>
-          ) : null}
-          <UserButton />
-        </div>
-      </div>
+      </header>
+      <hr />
       <ImportCharacterBox />
+      <hr />
       <CharactersDashboard
         initialCharacters={characters.map((character) => ({
           id: character._id!.toString(),

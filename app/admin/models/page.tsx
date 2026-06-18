@@ -17,19 +17,20 @@ export default async function AdminModelsPage() {
   const providerById = new Map(providers.map((provider) => [provider._id!.toString(), provider]));
 
   return (
-    <main className="min-h-screen bg-slate-950 px-6 py-10 text-white">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
+    <main>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <Link href="/characters" className="text-sm text-cyan-300 transition hover:text-cyan-200">
-            Back to characters
-          </Link>
-          <h1 className="mt-2 text-3xl font-semibold">Provider and model admin</h1>
-          <p className="mt-2 text-slate-400">
+          <p>
+            <Link href="/characters">Back to characters</Link>
+          </p>
+          <h1>Provider and model admin</h1>
+          <p>
             Register OpenAI-compatible providers, test connectivity, sync remote models, and enable only the models you want users to see.
           </p>
         </div>
         <UserButton />
       </div>
+      <hr />
       <AdminModelsConsole
         initialProviders={providers.map((provider) => ({
           id: provider._id!.toString(),

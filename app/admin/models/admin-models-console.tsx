@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 type ProviderRow = {
   id: string;
@@ -35,14 +35,52 @@ export function AdminModelsConsole({
   const [name, setName] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
-  const [caiToken, setCaiToken] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('caiToken') || '';
-    }
-    return '';
-  });
+  const [caiToken, setCaiToken] = useState("");
+  const [caiTokenStatus, setCaiTokenStatus] = useState<string>("Checking...");
+  const [savingToken, setSavingToken] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    async function checkToken() {
+      try {
+        const res = await fetch("/api/admin/cai-token");
+        const data = await res.json();
+        if (data.isSet) {
+          setCaiTokenStatus("Saved on server");
+        } else {
+          setCaiTokenStatus("Not configured");
+        }
+      } catch {
+        setCaiTokenStatus("Error checking token");
+      }
+    }
+    checkToken();
+  }, []);
+
+  async function handleSaveCaiToken() {
+    if (!caiToken.trim()) return;
+    setSavingToken(true);
+    try {
+      const res = await fetch("/api/admin/cai-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: caiToken }),
+      });
+      if (res.ok) {
+        setCaiTokenStatus("Saved on server");
+        setCaiToken("");
+        alert("Character.AI token saved successfully!");
+      } else {
+        const data = await res.json();
+        alert(data.error?.message || "Failed to save token.");
+      }
+    } catch {
+      alert("Failed to save token.");
+    } finally {
+      setSavingToken(false);
+    }
+  }
 
   async function reloadModels() {
     const response = await fetch("/api/admin/models", { cache: "no-store" });
@@ -150,129 +188,138 @@ export function AdminModelsConsole({
     }
 
     setModels((current) =>
-      current.map((model) =>
-        model.id === modelId ? { ...model, isEnabled } : model,
-      ),
+      current.map((model) => {
+        if (model.id === modelId) {
+          return { ...model, isEnabled };
+        }
+        if (isEnabled) {
+          return { ...model, isEnabled: false };
+        }
+        return model;
+      }),
     );
   }
 
   return (
-    <div className="mx-auto mt-10 grid max-w-6xl gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-      <section className="rounded-[1.5rem] border border-white/10 bg-slate-900/60 p-6">
-        <h2 className="text-xl font-semibold">Character AI Token</h2>
-        <p className="mt-2 text-sm text-slate-400">
-          This token is used only for importing CAI characters and is not related to LLM providers. It is stored locally in your browser.
-        </p>
-        <input
-          value={caiToken}
-          onChange={(event) => {
-            setCaiToken(event.target.value);
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('caiToken', event.target.value);
-            }
-          }}
-          placeholder="Paste your CAI token here"
-          className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 mb-4"
-          autoComplete="off"
-        />
-      </section>
-      <section className="rounded-[1.5rem] border border-white/10 bg-slate-900/60 p-6">
-        <h2 className="text-xl font-semibold">Add provider</h2>
-        <p className="mt-2 text-sm text-slate-400">
-          Use the provider base URL for an OpenAI-compatible API server. Keys are encrypted and only used on the server.
-        </p>
-        <form onSubmit={handleCreateProvider} className="mt-6 space-y-4">
+    <div style={{ display: "flex", gap: "20px", marginTop: "20px" }}>
+      <div style={{ flex: 1 }}>
+        <section style={{ border: "1px solid #ccc", padding: "15px", marginBottom: "20px" }}>
+          <h2>Character AI Token</h2>
+          <p>
+            This token is used for importing CAI characters. It is stored securely on the server and never exposed to regular users.
+          </p>
+          <p>Current status: <strong>{caiTokenStatus}</strong></p>
           <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Provider name"
-            className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500"
-            required
-          />
-          <input
-            value={baseUrl}
-            onChange={(event) => setBaseUrl(event.target.value)}
-            placeholder="https://api.openai.com/v1"
-            className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500"
-            required
-          />
-          <input
-            value={apiKey}
-            onChange={(event) => setApiKey(event.target.value)}
-            placeholder="Provider API key"
+            value={caiToken}
+            onChange={(event) => setCaiToken(event.target.value)}
+            placeholder="Paste new Character.AI token here"
             type="password"
-            className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500"
-            required
+            autoComplete="off"
           />
-          {error ? <p className="text-sm text-slate-300">{error}</p> : null}
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-full bg-white px-5 py-3 text-sm font-medium text-slate-950 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {submitting ? "Saving..." : "Create provider"}
-          </button>
-        </form>
-        <div className="mt-8 space-y-3">
-          {providers.map((provider) => (
-            <article
-              key={provider.id}
-              className="rounded-[1.25rem] border border-white/10 bg-slate-950/60 p-4"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="font-medium">{provider.name}</h3>
-                  <p className="mt-1 text-sm text-slate-400">{provider.baseUrl}</p>
+          <div style={{ marginTop: "10px" }}>
+            <button onClick={handleSaveCaiToken} disabled={savingToken || !caiToken.trim()}>
+              {savingToken ? "Saving..." : "Save token"}
+            </button>
+          </div>
+        </section>
+
+        <section style={{ border: "1px solid #ccc", padding: "15px" }}>
+          <h2>Add provider</h2>
+          <p>
+            Use the provider base URL for an OpenAI-compatible API server. Keys are encrypted and only used on the server.
+          </p>
+          <form onSubmit={handleCreateProvider}>
+            <div>
+              <label>Name: </label>
+              <input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Provider name"
+                required
+              />
+            </div>
+            <div style={{ marginTop: "10px" }}>
+              <label>Base URL: </label>
+              <input
+                value={baseUrl}
+                onChange={(event) => setBaseUrl(event.target.value)}
+                placeholder="https://api.openai.com/v1"
+                required
+              />
+            </div>
+            <div style={{ marginTop: "10px" }}>
+              <label>API Key: </label>
+              <input
+                value={apiKey}
+                onChange={(event) => setApiKey(event.target.value)}
+                placeholder="Provider API key"
+                type="password"
+                required
+              />
+            </div>
+            {error ? <p style={{ color: "red" }}>{error}</p> : null}
+            <div style={{ marginTop: "15px" }}>
+              <button type="submit" disabled={submitting}>
+                {submitting ? "Saving..." : "Create provider"}
+              </button>
+            </div>
+          </form>
+          <hr />
+          <div style={{ marginTop: "15px" }}>
+            {providers.map((provider) => (
+              <article
+                key={provider.id}
+                style={{ border: "1px solid #ddd", padding: "10px", marginBottom: "10px" }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <h3>{provider.name}</h3>
+                    <p style={{ margin: "5px 0 0 0", fontSize: "0.9em", color: "#666" }}>{provider.baseUrl}</p>
+                  </div>
+                  <span>[{provider.isActive ? "active" : "inactive"}]</span>
                 </div>
-                <span className="rounded-full border border-white/10 px-2 py-1 text-xs uppercase tracking-[0.2em] text-cyan-300">
-                  {provider.isActive ? "active" : "inactive"}
-                </span>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-3">
-                <button
-                  onClick={() => handleTestProvider(provider.id)}
-                  className="rounded-full border border-white/10 px-4 py-2 text-sm transition hover:bg-white/10"
-                >
-                  Test connection
-                </button>
-                <button
-                  onClick={() => handleSyncProvider(provider.id)}
-                  className="rounded-full bg-cyan-400 px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-cyan-300"
-                >
-                  Sync models
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-      <section className="rounded-[1.5rem] border border-white/10 bg-white/5 p-6">
-        <h2 className="text-xl font-semibold">Available models</h2>
-        <p className="mt-2 text-sm text-slate-400">
+                <div style={{ marginTop: "10px" }}>
+                  <button onClick={() => handleTestProvider(provider.id)}>
+                    Test connection
+                  </button>
+                  {" "}
+                  <button onClick={() => handleSyncProvider(provider.id)}>
+                    Sync models
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <section style={{ flex: 1, borderLeft: "1px solid #ccc", paddingLeft: "20px" }}>
+        <h2>Available models</h2>
+        <p>
           Sync a provider, then enable only the models you want users to access.
         </p>
-        <div className="mt-6 space-y-3">
+        <div style={{ marginTop: "15px" }}>
           {models.map((model) => (
             <label
               key={model.id}
-              className="flex items-center justify-between gap-4 rounded-[1.25rem] border border-white/10 bg-slate-950/60 p-4"
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid #ddd", padding: "10px", marginBottom: "10px" }}
             >
               <div>
-                <p className="font-medium">{model.displayName}</p>
-                <p className="mt-1 text-sm text-slate-400">
+                <strong>{model.displayName}</strong>
+                <p style={{ margin: "5px 0 0 0", fontSize: "0.85em", color: "#666" }}>
                   {model.providerName} · {model.remoteModelId}
                 </p>
               </div>
               <input
-                type="checkbox"
+                type="radio"
+                name="enabledModel"
                 checked={model.isEnabled}
-                onChange={(event) => handleToggleModel(model.id, event.target.checked)}
-                className="h-5 w-5 rounded border-white/20 bg-slate-900 text-cyan-400"
+                onChange={() => handleToggleModel(model.id, !model.isEnabled)}
               />
             </label>
           ))}
           {!models.length ? (
-            <p className="text-sm text-slate-400">No synced models yet.</p>
+            <p>No synced models yet.</p>
           ) : null}
         </div>
       </section>

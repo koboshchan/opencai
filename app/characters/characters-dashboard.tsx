@@ -133,12 +133,12 @@ export function CharactersDashboard({
   }
 
   return (
-    <div className="mx-auto mt-10 grid max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-      <section className="space-y-5 rounded-[1.5rem] border border-white/10 bg-white/5 p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+    <div style={{ display: "flex", gap: "20px", marginTop: "20px" }}>
+      <section style={{ flex: 1.2 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
           <div>
-            <h2 className="text-xl font-semibold">Browse characters</h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <h2>Browse characters</h2>
+            <p>
               {enabledModelCount > 0
                 ? `${enabledModelCount} enabled models available for chat.`
                 : "No enabled models yet. An admin needs to sync and enable models first."}
@@ -149,30 +149,27 @@ export function CharactersDashboard({
             onChange={(event) => setSearch(event.target.value)}
             onBlur={() => refreshCharacters(search)}
             placeholder="Search by name or tag"
-            className="w-full max-w-xs rounded-full border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-white outline-none placeholder:text-slate-500"
           />
         </div>
-        <div className="grid gap-4">
+        <div>
           {characters.map((character) => (
             <article
               key={character.id}
-              className="rounded-[1.25rem] border border-white/10 bg-slate-950/60 p-5"
+              style={{ border: "1px solid #ccc", padding: "15px", marginBottom: "15px" }}
             >
-              <div className="flex items-start justify-between gap-4">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
                 <div>
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-semibold">{character.name}</h3>
-                    <span className="rounded-full border border-white/10 px-2 py-1 text-xs uppercase tracking-[0.2em] text-cyan-300">
-                      {character.visibility}
-                    </span>
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                    <h3>{character.name}</h3>
+                    <span>({character.visibility})</span>
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-slate-300">{character.description}</p>
+                  <p>{character.description}</p>
                   {character.tags.length ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div style={{ marginTop: "10px" }}>
                       {character.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="rounded-full bg-white/5 px-2 py-1 text-xs text-slate-300"
+                          style={{ marginRight: "5px", padding: "2px 5px", background: "#eee", fontSize: "0.8em" }}
                         >
                           #{tag}
                         </span>
@@ -180,18 +177,13 @@ export function CharactersDashboard({
                     </div>
                   ) : null}
                 </div>
-                <div className="flex flex-col items-end gap-2">
-                  <button
-                    onClick={() => handleStartChat(character.id)}
-                    className="rounded-full bg-cyan-400 px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-cyan-300"
-                  >
+                <div>
+                  <button onClick={() => handleStartChat(character.id)}>
                     Start chat
                   </button>
+                  {" "}
                   {character.isOwner || isAdmin ? (
-                    <button
-                      onClick={() => handleDeleteCharacter(character.id)}
-                      className="rounded-full border border-rose-400/40 px-4 py-2 text-sm text-rose-200 transition hover:bg-rose-400/10"
-                    >
+                    <button onClick={() => handleDeleteCharacter(character.id)}>
                       Delete
                     </button>
                   ) : null}
@@ -202,58 +194,63 @@ export function CharactersDashboard({
         </div>
       </section>
 
-      <section className="rounded-[1.5rem] border border-white/10 bg-slate-900/60 p-6">
-        <h2 className="text-xl font-semibold">Create a character</h2>
-        <p className="mt-2 text-sm text-slate-400">
+      <section style={{ flex: 0.8, borderLeft: "1px solid #ccc", paddingLeft: "20px" }}>
+        <h2>Create a character</h2>
+        <p>
           Characters store a system prompt and can be kept private or shared publicly.
         </p>
-        <form onSubmit={handleCreateCharacter} className="mt-6 space-y-4">
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Character name"
-            className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500"
-            required
-          />
-          <textarea
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            placeholder="What is this character for?"
-            className="min-h-24 w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500"
-            required
-          />
-          <textarea
-            value={systemPrompt}
-            onChange={(event) => setSystemPrompt(event.target.value)}
-            placeholder="System prompt"
-            className="min-h-40 w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500"
-            required
-          />
-          <input
-            value={tags}
-            onChange={(event) => setTags(event.target.value)}
-            placeholder="Tags, comma separated"
-            className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500"
-          />
-          <label className="block text-sm text-slate-300">
-            Visibility
+        <form onSubmit={handleCreateCharacter}>
+          <div>
+            <label>Name</label>
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Character name"
+              required
+            />
+          </div>
+          <div style={{ marginTop: "10px" }}>
+            <label>Description</label>
+            <textarea
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder="What is this character for?"
+              required
+            />
+          </div>
+          <div style={{ marginTop: "10px" }}>
+            <label>System Prompt</label>
+            <textarea
+              value={systemPrompt}
+              onChange={(event) => setSystemPrompt(event.target.value)}
+              placeholder="System prompt"
+              required
+            />
+          </div>
+          <div style={{ marginTop: "10px" }}>
+            <label>Tags</label>
+            <input
+              value={tags}
+              onChange={(event) => setTags(event.target.value)}
+              placeholder="Tags, comma separated"
+            />
+          </div>
+          <div style={{ marginTop: "10px" }}>
+            <label>Visibility</label>
             <select
               value={visibility}
               onChange={(event) => setVisibility(event.target.value as "public" | "private")}
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none"
             >
               <option value="private">Private</option>
               <option value="public">Public</option>
             </select>
-          </label>
-          {error ? <p className="text-sm text-rose-300">{error}</p> : null}
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-full bg-white px-5 py-3 text-sm font-medium text-slate-950 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {submitting ? "Creating..." : "Create character"}
-          </button>
+          </div>
+          {error ? <p style={{ color: "red" }}>{error}</p> : null}
+          <div style={{ marginTop: "15px" }}>
+            <button type="submit" disabled={submitting}>
+              {submitting ? "Creating..." : "Create character"}
+            </button>
+          </div>
         </form>
       </section>
     </div>

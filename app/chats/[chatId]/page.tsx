@@ -40,17 +40,18 @@ export default async function ChatPage({
   ]);
 
   return (
-    <main className="min-h-screen bg-slate-950 px-6 py-10 text-white">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
+    <main>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <Link href="/characters" className="text-sm text-cyan-300 transition hover:text-cyan-200">
-            Back to characters
-          </Link>
-          <h1 className="mt-2 text-3xl font-semibold">{chat.title}</h1>
-          <p className="mt-2 text-slate-400">Chatting with {character?.name ?? "Unknown character"}</p>
+          <p>
+            <Link href="/characters">Back to characters</Link>
+          </p>
+          <h1>{chat.title}</h1>
+          <p>Chatting with {character?.name ?? "Unknown character"}</p>
         </div>
         <UserButton />
       </div>
+      <hr />
       <ChatRoom
         chatId={chat._id!.toString()}
         characterName={character?.name ?? "Unknown character"}

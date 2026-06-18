@@ -113,52 +113,48 @@ export function ChatRoom({ chatId, characterName, initialMessages }: ChatRoomPro
   }
 
   return (
-    <div className="mx-auto mt-10 grid max-w-5xl gap-6">
-      <section className="rounded-[1.5rem] border border-white/10 bg-white/5 p-6">
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-semibold">Conversation</h2>
-            <p className="mt-1 text-sm text-slate-400">Streaming replies from {characterName}</p>
-          </div>
-        </div>
-        <div className="space-y-4">
+    <div>
+      <section>
+        <h2>Conversation</h2>
+        <p>Streaming replies from {characterName}</p>
+        <div style={{ marginTop: "20px" }}>
           {renderedMessages.length ? (
             renderedMessages.map((message) => (
               <article
                 key={message.id}
-                className={`rounded-[1.25rem] border p-4 ${
-                  message.role === "user"
-                    ? "border-cyan-400/20 bg-cyan-400/10"
-                    : "border-white/10 bg-slate-950/60"
-                }`}
+                style={{
+                  border: "1px solid #ccc",
+                  padding: "10px",
+                  margin: "10px 0",
+                  backgroundColor: message.role === "user" ? "#f9f9f9" : "#fff",
+                }}
               >
-                <p className="mb-2 text-xs uppercase tracking-[0.25em] text-slate-400">
+                <p style={{ margin: "0 0 5px 0", fontSize: "0.8em", textTransform: "uppercase", color: "#666" }}>
                   {message.role}
                 </p>
-                <p className="whitespace-pre-wrap text-sm leading-7 text-slate-100">{message.content}</p>
+                <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{message.content}</p>
               </article>
             ))
           ) : (
-            <p className="text-sm text-slate-400">No messages yet. Start the conversation below.</p>
+            <p>No messages yet. Start the conversation below.</p>
           )}
         </div>
       </section>
-      <section className="rounded-[1.5rem] border border-white/10 bg-slate-900/60 p-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <hr />
+      <section>
+        <form onSubmit={handleSubmit}>
           <textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             placeholder="Send a message"
-            className="min-h-32 w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500"
+            rows={4}
           />
-          {error ? <p className="text-sm text-rose-300">{error}</p> : null}
-          <button
-            type="submit"
-            disabled={submitting}
-            className="rounded-full bg-cyan-400 px-5 py-3 text-sm font-medium text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {submitting ? "Streaming..." : "Send message"}
-          </button>
+          {error ? <p style={{ color: "red" }}>{error}</p> : null}
+          <div style={{ marginTop: "10px" }}>
+            <button type="submit" disabled={submitting}>
+              {submitting ? "Streaming..." : "Send message"}
+            </button>
+          </div>
         </form>
       </section>
     </div>
