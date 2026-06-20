@@ -12,6 +12,7 @@ export interface UserDocument {
   isAdmin: boolean;
   telegramUserId?: number;
   telegramUsername?: string | null;
+  description?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

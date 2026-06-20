@@ -65,3 +65,8 @@ export const paginationSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
   search: z.string().trim().optional(),
 });
+
+export const updateProfileSchema = z.object({
+  displayName: z.string().trim().min(2).max(80).optional(),
+  description: z.string().trim().max(500).optional(),
+});
