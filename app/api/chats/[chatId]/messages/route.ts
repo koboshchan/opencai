@@ -118,30 +118,32 @@ export async function POST(
       payload.modelId || chat.selectedModelId?.toString() || "",
     );
     const now = new Date();
-    const userMessage: ChatMessageDocument = {
-      chatId: chat._id!,
-      ownerClerkUserId: viewer.clerkUserId,
-      role: "user",
-      content: payload.content,
-      modelId: resolved.model._id,
-      providerId: resolved.provider._id,
-      promptTokens: null,
-      completionTokens: null,
-      finishReason: null,
-      createdAt: now,
-    };
+    if (payload.content) {
+      const userMessage: ChatMessageDocument = {
+        chatId: chat._id!,
+        ownerClerkUserId: viewer.clerkUserId,
+        role: "user",
+        content: payload.content,
+        modelId: resolved.model._id,
+        providerId: resolved.provider._id,
+        promptTokens: null,
+        completionTokens: null,
+        finishReason: null,
+        createdAt: now,
+      };
 
-    await db.collection<ChatMessageDocument>("chatMessages").insertOne(userMessage);
-    await db.collection<ChatDocument>("chats").updateOne(
-      { _id: chat._id },
-      {
-        $set: {
-          selectedModelId: resolved.model._id,
-          updatedAt: now,
-          lastMessageAt: now,
+      await db.collection<ChatMessageDocument>("chatMessages").insertOne(userMessage);
+      await db.collection<ChatDocument>("chats").updateOne(
+        { _id: chat._id },
+        {
+          $set: {
+            selectedModelId: resolved.model._id,
+            updatedAt: now,
+            lastMessageAt: now,
+          },
         },
-      },
-    );
+      );
+    }
 
     const history = await db
       .collection<ChatMessageDocument>("chatMessages")

@@ -35,7 +35,7 @@ export const updateChatSchema = z
   .refine((value) => Object.keys(value).length > 0, "At least one field must be provided.");
 
 export const createMessageSchema = z.object({
-  content: z.string().trim().min(1).max(16000),
+  content: z.string().trim().max(16000).optional(),
   modelId: z.string().trim().optional(),
 });
 
