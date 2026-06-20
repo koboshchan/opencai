@@ -4,6 +4,7 @@ import { Collection } from "mongodb";
 import { getDb } from "@/lib/db";
 import { ApiError } from "@/lib/errors";
 import { AppStateDocument, UserDocument, ViewerContext } from "@/lib/types";
+import { decryptSecret } from "@/lib/crypto";
 
 async function usersCollection() {
   const db = await getDb();
@@ -82,16 +83,27 @@ export async function requireViewer(): Promise<ViewerContext> {
     const authHeader = headersList.get("authorization");
     if (authHeader && authHeader.startsWith("Bearer ")) {
       const token = authHeader.substring(7);
-      if (token && token === process.env.TELEGRAM_BOT_SECRET) {
-        const clerkUserId = headersList.get("x-clerk-user-id");
-        if (clerkUserId) {
-          const db = await getDb();
-          const user = await db.collection<UserDocument>("users").findOne({ clerkUserId });
-          if (user) {
-            return {
-              clerkUserId: user.clerkUserId,
-              user,
-            };
+      if (token) {
+        const db = await getDb();
+        const doc = await db.collection<AppStateDocument>("appState").findOne({ key: "telegram-bot-secret" });
+        let expectedSecret = process.env.TELEGRAM_BOT_SECRET;
+        if (doc?.value) {
+          try {
+            expectedSecret = decryptSecret(doc.value);
+          } catch (err) {
+            console.error("Failed to decrypt database bot secret:", err);
+          }
+        }
+        if (expectedSecret && token === expectedSecret) {
+          const clerkUserId = headersList.get("x-clerk-user-id");
+          if (clerkUserId) {
+            const user = await db.collection<UserDocument>("users").findOne({ clerkUserId });
+            if (user) {
+              return {
+                clerkUserId: user.clerkUserId,
+                user,
+              };
+            }
           }
         }
       }

@@ -10,11 +10,7 @@ const isProtectedRoute = createRouteMatcher([
 
 export default clerkMiddleware(async (auth, req) => {
   const authHeader = req.headers.get("authorization");
-  if (
-    authHeader &&
-    authHeader.startsWith("Bearer ") &&
-    authHeader.substring(7) === process.env.TELEGRAM_BOT_SECRET
-  ) {
+  if (authHeader && authHeader.startsWith("Bearer ")) {
     return;
   }
   if (isProtectedRoute(req)) {

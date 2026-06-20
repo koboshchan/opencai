@@ -38,6 +38,8 @@ export function AdminModelsConsole({
   const [caiToken, setCaiToken] = useState("");
   const [caiTokenStatus, setCaiTokenStatus] = useState<string>("Checking...");
   const [savingToken, setSavingToken] = useState(false);
+  const [botSecret, setBotSecret] = useState("");
+  const [refreshingSecret, setRefreshingSecret] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -55,7 +57,17 @@ export function AdminModelsConsole({
         setCaiTokenStatus("Error checking token");
       }
     }
+    async function fetchBotSecret() {
+      try {
+        const res = await fetch("/api/admin/bot-secret");
+        const data = await res.json();
+        setBotSecret(data.secret || "");
+      } catch {
+        setBotSecret("Error loading secret");
+      }
+    }
     checkToken();
+    fetchBotSecret();
   }, []);
 
   async function handleSaveCaiToken() {
@@ -79,6 +91,30 @@ export function AdminModelsConsole({
       alert("Failed to save token.");
     } finally {
       setSavingToken(false);
+    }
+  }
+
+  async function handleRefreshBotSecret() {
+    if (!window.confirm("Are you sure you want to refresh the Telegram Bot Secret? This will invalidate the previous secret and you must update your bot's configuration.")) {
+      return;
+    }
+    setRefreshingSecret(true);
+    try {
+      const res = await fetch("/api/admin/bot-secret", {
+        method: "POST",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBotSecret(data.secret);
+        alert("Bot secret refreshed successfully! Please copy it and update your bot's .env file.");
+      } else {
+        const data = await res.json();
+        alert(data.error?.message || "Failed to refresh bot secret.");
+      }
+    } catch {
+      alert("Failed to refresh bot secret.");
+    } finally {
+      setRefreshingSecret(false);
     }
   }
 
@@ -219,6 +255,19 @@ export function AdminModelsConsole({
           <div style={{ marginTop: "10px" }}>
             <button onClick={handleSaveCaiToken} disabled={savingToken || !caiToken.trim()}>
               {savingToken ? "Saving..." : "Save token"}
+            </button>
+          </div>
+        </section>
+
+        <section style={{ border: "1px solid #ccc", padding: "15px", marginBottom: "20px" }}>
+          <h2>Telegram Bot Secret</h2>
+          <p>
+            This secret secures the connection between your Telegram bot and this web application.
+          </p>
+          <p>Current secret: <strong>{botSecret || "Loading..."}</strong></p>
+          <div style={{ marginTop: "10px" }}>
+            <button onClick={handleRefreshBotSecret} disabled={refreshingSecret}>
+              {refreshingSecret ? "Refreshing..." : "Refresh Bot Secret"}
             </button>
           </div>
         </section>
