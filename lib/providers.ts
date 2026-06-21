@@ -1,5 +1,5 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { ModelMessage, streamText } from "ai";
+import { ModelMessage, streamText, generateText } from "ai";
 import { ObjectId } from "mongodb";
 
 import { recordAuditLog } from "@/lib/audit";
@@ -177,43 +177,74 @@ interface StreamOptions {
 }
 
 export async function streamChatCompletion(options: StreamOptions) {
-  const apiKey = decryptSecret(options.provider.encryptedApiKey);
-  const aiProvider = createOpenAICompatible({
-    name: options.provider.name,
-    apiKey,
-    baseURL: normalizeBaseUrl(options.provider.baseUrl),
-  });
+  try {
+    const apiKey = decryptSecret(options.provider.encryptedApiKey);
+    const aiProvider = createOpenAICompatible({
+      name: options.provider.name,
+      apiKey,
+      baseURL: normalizeBaseUrl(options.provider.baseUrl),
+    });
 
-  const result = streamText({
-    model: aiProvider(options.model.remoteModelId),
-    messages: options.messages,
-    onFinish: async ({ text, usage, finishReason }) => {
-      const promptTokens = usage.inputTokens ?? null;
-      const completionTokens = usage.outputTokens ?? null;
+    const result = streamText({
+      model: aiProvider(options.model.remoteModelId),
+      messages: options.messages,
+      onFinish: async ({ text, usage, finishReason }) => {
+        const promptTokens = usage.inputTokens ?? null;
+        const completionTokens = usage.outputTokens ?? null;
 
-      await options.onComplete({
-        assistantText: text,
-        promptTokens,
-        completionTokens,
-        finishReason: finishReason ?? null,
-      });
-
-      await recordAuditLog({
-        actorClerkUserId: options.actorClerkUserId,
-        action: "chat_completion",
-        resourceType: "providerModel",
-        resourceId: options.model._id.toString(),
-        metadata: {
-          providerId: options.provider._id.toString(),
-          providerName: options.provider.name,
-          remoteModelId: options.model.remoteModelId,
+        await options.onComplete({
+          assistantText: text,
           promptTokens,
           completionTokens,
-          finishReason,
-        },
-      });
-    },
-  });
+          finishReason: finishReason ?? null,
+        });
 
-  return result.toTextStreamResponse();
+        await recordAuditLog({
+          actorClerkUserId: options.actorClerkUserId,
+          action: "chat_completion",
+          resourceType: "providerModel",
+          resourceId: options.model._id.toString(),
+          metadata: {
+            providerId: options.provider._id.toString(),
+            providerName: options.provider.name,
+            remoteModelId: options.model.remoteModelId,
+            promptTokens,
+            completionTokens,
+            finishReason,
+          },
+        });
+      },
+    });
+
+    return result.toTextStreamResponse();
+  } catch (error) {
+    console.error("FAILED TO GENERATE:", error);
+    throw error;
+  }
+}
+
+export async function generateChatSummary(options: {
+  actorClerkUserId: string;
+  provider: ProviderDocument;
+  model: ProviderModelDocument;
+  prompt: string;
+}): Promise<string> {
+  try {
+    const apiKey = decryptSecret(options.provider.encryptedApiKey);
+    const aiProvider = createOpenAICompatible({
+      name: options.provider.name,
+      apiKey,
+      baseURL: normalizeBaseUrl(options.provider.baseUrl),
+    });
+
+    const { text } = await generateText({
+      model: aiProvider(options.model.remoteModelId),
+      prompt: options.prompt,
+    });
+
+    return text;
+  } catch (error) {
+    console.error("FAILED TO GENERATE SUMMARY:", error);
+    throw error;
+  }
 }

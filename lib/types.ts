@@ -41,6 +41,8 @@ export interface ChatDocument {
   selectedModelId?: ObjectId | null;
   archivedAt?: Date | null;
   deletedAt?: Date | null;
+  summaries?: string[];
+  compressedMessageCount?: number;
   lastMessageAt: Date;
   createdAt: Date;
   updatedAt: Date;
