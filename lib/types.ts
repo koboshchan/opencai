@@ -26,6 +26,7 @@ export interface CharacterDocument {
   systemPrompt: string;
   visibility: Visibility;
   avatarUrl: string | null;
+  greeting?: string | null;
   tags: string[];
   createdAt: Date;
   updatedAt: Date;

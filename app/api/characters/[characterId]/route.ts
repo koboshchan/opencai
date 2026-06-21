@@ -53,6 +53,7 @@ export async function GET(
         systemPrompt: character.systemPrompt,
         visibility: character.visibility,
         avatarUrl: character.avatarUrl,
+        greeting: character.greeting ?? null,
         tags: character.tags,
         createdAt: character.createdAt.toISOString(),
         updatedAt: character.updatedAt.toISOString(),

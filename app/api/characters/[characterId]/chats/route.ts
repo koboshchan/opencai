@@ -55,6 +55,17 @@ export async function POST(
     };
     const result = await db.collection<ChatDocument>("chats").insertOne(chat);
 
+    if (character.greeting?.trim()) {
+      const greetingMessage = {
+        chatId: result.insertedId,
+        ownerClerkUserId: viewer.clerkUserId,
+        role: "assistant" as const,
+        content: character.greeting.trim(),
+        createdAt: now,
+      };
+      await db.collection("chatMessages").insertOne(greetingMessage);
+    }
+
     return Response.json(
       {
         chat: {

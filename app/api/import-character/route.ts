@@ -72,6 +72,7 @@ export async function POST(req: Request) {
       systemPrompt: [imported.description, imported.greeting].filter(Boolean).join("\n\n"),
       visibility: payload.visibility,
       avatarUrl: imported.avatar_file_name ? `https://characterai.io/i/80/static/avatars/${imported.avatar_file_name}` : null,
+      greeting: imported.greeting?.trim() || null,
       tags: imported.categories?.slice(0, 10) ?? [],
       createdAt: now,
       updatedAt: now,

@@ -8,6 +8,7 @@ export const createCharacterSchema = z.object({
   systemPrompt: z.string().trim().min(1).max(8000),
   visibility: visibilitySchema,
   avatarUrl: z.string().url().nullable().optional(),
+  greeting: z.string().trim().max(2000).optional(),
   tags: z.array(z.string().trim().min(1).max(32)).max(10).default([]),
 });
 

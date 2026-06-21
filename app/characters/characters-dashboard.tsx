@@ -36,6 +36,7 @@ export function CharactersDashboard({
   const [systemPrompt, setSystemPrompt] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private">("private");
   const [tags, setTags] = useState("");
+  const [greeting, setGreeting] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,6 +70,7 @@ export function CharactersDashboard({
           name,
           description,
           systemPrompt,
+          greeting: greeting || undefined,
           visibility,
           tags: tags
             .split(",")
@@ -86,6 +88,7 @@ export function CharactersDashboard({
       setName("");
       setDescription("");
       setSystemPrompt("");
+      setGreeting("");
       setVisibility("private");
       setTags("");
     } catch (createError) {
@@ -225,6 +228,14 @@ export function CharactersDashboard({
               onChange={(event) => setSystemPrompt(event.target.value)}
               placeholder="System prompt"
               required
+            />
+          </div>
+          <div style={{ marginTop: "10px" }}>
+            <label>Greeting (Official starting message)</label>
+            <textarea
+              value={greeting}
+              onChange={(event) => setGreeting(event.target.value)}
+              placeholder="Official starting message / greeting (optional)"
             />
           </div>
           <div style={{ marginTop: "10px" }}>
