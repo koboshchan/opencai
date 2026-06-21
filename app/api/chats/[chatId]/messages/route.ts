@@ -331,18 +331,28 @@ export async function DELETE(
     const { chatId } = await context.params;
     const db = await getDb();
     const chat = await getOwnedChat(chatId, viewer.clerkUserId);
+    
+    const url = new URL(request.url);
+    const deleteAll = url.searchParams.get("all") === "true";
 
-    const lastMessage = await db
-      .collection<ChatMessageDocument>("chatMessages")
-      .findOne({ chatId: chat._id }, { sort: { createdAt: -1 } });
+    if (deleteAll) {
+      // Find and delete the last assistant message
+      const lastAssistant = await db
+        .collection<ChatMessageDocument>("chatMessages")
+        .findOne({ chatId: chat._id, role: "assistant" }, { sort: { createdAt: -1 } });
+      if (lastAssistant) {
+        await db.collection("chatMessages").deleteOne({ _id: lastAssistant._id });
+      }
 
-    const userMsgCount = await db
-      .collection<ChatMessageDocument>("chatMessages")
-      .countDocuments({ chatId: chat._id, role: "user" });
+      // Find and delete the last user message
+      const lastUser = await db
+        .collection<ChatMessageDocument>("chatMessages")
+        .findOne({ chatId: chat._id, role: "user" }, { sort: { createdAt: -1 } });
+      if (lastUser) {
+        await db.collection("chatMessages").deleteOne({ _id: lastUser._id });
+      }
 
-    if (userMsgCount > 0 && lastMessage && lastMessage.role === "assistant") {
-      await db.collection("chatMessages").deleteOne({ _id: lastMessage._id });
-
+      // Update chat's timestamps based on new last message
       const newLastMessage = await db
         .collection<ChatMessageDocument>("chatMessages")
         .findOne({ chatId: chat._id }, { sort: { createdAt: -1 } });
@@ -357,11 +367,68 @@ export async function DELETE(
           },
         },
       );
+    } else {
+      const lastMessage = await db
+        .collection<ChatMessageDocument>("chatMessages")
+        .findOne({ chatId: chat._id }, { sort: { createdAt: -1 } });
+
+      const userMsgCount = await db
+        .collection<ChatMessageDocument>("chatMessages")
+        .countDocuments({ chatId: chat._id, role: "user" });
+
+      if (userMsgCount > 0 && lastMessage && lastMessage.role === "assistant") {
+        await db.collection("chatMessages").deleteOne({ _id: lastMessage._id });
+
+        const newLastMessage = await db
+          .collection<ChatMessageDocument>("chatMessages")
+          .findOne({ chatId: chat._id }, { sort: { createdAt: -1 } });
+        const now = newLastMessage ? newLastMessage.createdAt : new Date();
+
+        await db.collection("chats").updateOne(
+          { _id: chat._id },
+          {
+            $set: {
+              updatedAt: now,
+              lastMessageAt: now,
+            },
+          },
+        );
+      }
     }
 
     return Response.json({ success: true });
   } catch (error) {
     console.error("FAILED TO DELETE MESSAGE:", error);
+    return toErrorResponse(error);
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  context: RouteContext<"/api/chats/[chatId]/messages">,
+) {
+  try {
+    const viewer = await requireViewer();
+    const { chatId } = await context.params;
+    const { content } = await request.json();
+    const db = await getDb();
+    const chat = await getOwnedChat(chatId, viewer.clerkUserId);
+
+    const lastUserMessage = await db
+      .collection<ChatMessageDocument>("chatMessages")
+      .findOne({ chatId: chat._id, role: "user" }, { sort: { createdAt: -1 } });
+
+    if (lastUserMessage) {
+      await db.collection("chatMessages").updateOne(
+        { _id: lastUserMessage._id },
+        { $set: { content: content, updatedAt: new Date() } }
+      );
+      return Response.json({ success: true });
+    }
+
+    throw new ApiError(404, "No user message found to edit.");
+  } catch (error) {
+    console.error("FAILED TO EDIT MESSAGE:", error);
     return toErrorResponse(error);
   }
 }
