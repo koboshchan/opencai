@@ -14,8 +14,8 @@ export async function GET(request: Request) {
     const searchFilter: Filter<CharacterDocument> | null = query
       ? {
           $or: [
-            { $text: { $search: query } },
             { name: { $regex: query, $options: "i" } },
+            { description: { $regex: query, $options: "i" } },
             { tags: { $elemMatch: { $regex: query, $options: "i" } } },
           ],
         }
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     const characters = await db
       .collection<CharacterDocument>("characters")
       .find(filter)
-      .sort(query ? { score: { $meta: "textScore" } } : { updatedAt: -1 })
+      .sort({ updatedAt: -1 })
       .limit(25)
       .toArray();
 
