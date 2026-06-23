@@ -216,7 +216,12 @@ export async function streamChatCompletion(options: StreamOptions) {
       },
     });
 
-    return result.toTextStreamResponse();
+    return result.toTextStreamResponse({
+      headers: {
+        "X-Accel-Buffering": "no",
+        "Cache-Control": "no-cache, no-transform",
+      },
+    });
   } catch (error) {
     console.error("FAILED TO GENERATE:", error);
     throw error;
