@@ -218,6 +218,11 @@ export async function POST(
         if (!resolved.provider) {
           throw err;
         }
+        // Save the fallback model to the database for this chat
+        await db.collection("chats").updateOne(
+          { _id: chat._id },
+          { $set: { selectedModelId: defaultModel._id, updatedAt: new Date() } }
+        );
       } else {
         throw err;
       }
