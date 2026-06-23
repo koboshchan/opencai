@@ -11,7 +11,7 @@ import {
 import { requireViewer } from "@/lib/auth";
 import { getDb, parseObjectId } from "@/lib/db";
 import { ApiError, toErrorResponse } from "@/lib/errors";
-import { resolveEnabledModel, streamChatCompletion, generateChatSummary } from "@/lib/providers";
+import { resolveEnabledModel, getDefaultEnabledModel, streamChatCompletion, generateChatSummary } from "@/lib/providers";
 import { createMessageSchema } from "@/lib/validators";
 
 let cachedSystemTemplate: string | null = null;
@@ -202,9 +202,26 @@ export async function POST(
       throw new ApiError(404, "Character not found for this chat.");
     }
 
-    const resolved = await resolveEnabledModel(
-      payload.modelId || chat.selectedModelId?.toString() || "",
-    );
+    let resolved;
+    try {
+      resolved = await resolveEnabledModel(
+        payload.modelId || chat.selectedModelId?.toString() || "",
+      );
+    } catch (err) {
+      // Fallback to default enabled model if the chat's model is not found/enabled
+      const defaultModel = await getDefaultEnabledModel();
+      if (defaultModel) {
+        resolved = {
+          model: defaultModel,
+          provider: await db.collection("providers").findOne({ _id: defaultModel.providerId })
+        } as any;
+        if (!resolved.provider) {
+          throw err;
+        }
+      } else {
+        throw err;
+      }
+    }
     const now = new Date();
     if (payload.content) {
       const userMessage: ChatMessageDocument = {
