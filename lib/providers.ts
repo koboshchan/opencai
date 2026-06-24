@@ -126,6 +126,12 @@ export async function syncProviderModels(provider: ProviderDocument & { _id: Obj
   const models = await fetchProviderModels(provider);
   const now = new Date();
 
+  const fetchedModelIds = models.map((m) => m.id);
+  await db.collection<ProviderModelDocument>("providerModels").deleteMany({
+    providerId: provider._id,
+    remoteModelId: { $nin: fetchedModelIds },
+  });
+
   if (!models.length) {
     return [] as ProviderModelDocument[];
   }
