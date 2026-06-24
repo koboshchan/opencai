@@ -289,6 +289,9 @@ export async function POST(
           provider: resolved.provider,
           model: resolved.model,
           messages: llmMessages,
+          reasoning: payload.thinkingEnabled !== undefined
+            ? (payload.thinkingEnabled ? "high" : "none")
+            : undefined,
           onComplete: async ({
             assistantText,
             promptTokens,

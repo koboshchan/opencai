@@ -168,6 +168,7 @@ interface StreamOptions {
   provider: ProviderDocument & { _id: ObjectId };
   model: ProviderModelDocument & { _id: ObjectId };
   messages: ModelMessage[];
+  reasoning?: "none" | "low" | "medium" | "high" | "xhigh";
   onComplete: (result: {
     assistantText: string;
     promptTokens: number | null;
@@ -188,6 +189,11 @@ export async function streamChatCompletion(options: StreamOptions) {
     const result = streamText({
       model: aiProvider(options.model.remoteModelId),
       messages: options.messages,
+      providerOptions: options.reasoning ? {
+        [options.provider.name]: {
+          reasoningEffort: options.reasoning === "high" ? "high" : "low"
+        }
+      } : undefined,
       onFinish: async ({ text, usage, finishReason }) => {
         const promptTokens = usage.inputTokens ?? null;
         const completionTokens = usage.outputTokens ?? null;

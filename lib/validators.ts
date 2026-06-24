@@ -38,6 +38,7 @@ export const updateChatSchema = z
 export const createMessageSchema = z.object({
   content: z.string().trim().max(16000).optional(),
   modelId: z.string().trim().optional(),
+  thinkingEnabled: z.boolean().optional(),
 });
 
 export const providerSchema = z.object({
