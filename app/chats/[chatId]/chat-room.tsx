@@ -1,6 +1,8 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+
+import { splitIntoBubbles, typingDelayMs } from "@/lib/texting";
 
 type Message = {
   id: string;
@@ -15,39 +17,81 @@ interface ChatRoomProps {
   initialMessages: Message[];
 }
 
+type BubbleGroup = {
+  key: string;
+  role: "user" | "assistant";
+  bubbles: { key: string; text: string }[];
+  timestamp: string;
+};
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function toGroups(messages: Message[]): BubbleGroup[] {
+  return messages
+    .filter((message) => message.role !== "system")
+    .map((message) => ({
+      key: message.id,
+      role: message.role as "user" | "assistant",
+      bubbles: splitIntoBubbles(message.content).map((text, index) => ({
+        key: `${message.id}-${index}`,
+        text,
+      })),
+      timestamp: message.createdAt,
+    }))
+    .filter((group) => group.bubbles.length > 0);
+}
+
+function TypingIndicator() {
+  return (
+    <div className="flex w-fit items-center gap-1 rounded-2xl rounded-bl-sm bg-gray-100 px-4 py-3">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400"
+          style={{ animationDelay: `${i * 0.15}s` }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function ChatRoom({ chatId, characterName, initialMessages }: ChatRoomProps) {
   const [messages, setMessages] = useState(initialMessages);
   const [draft, setDraft] = useState("");
-  const [streamingMessage, setStreamingMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [revealedBubbles, setRevealedBubbles] = useState<string[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  const renderedMessages = useMemo(() => {
-    if (!streamingMessage) {
-      return messages;
+  const groups = toGroups(messages);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [groups.length, revealedBubbles.length, isTyping]);
+
+  async function revealBubbles(bubbles: string[]) {
+    for (const bubble of bubbles) {
+      setIsTyping(true);
+      await delay(typingDelayMs(bubble));
+      setIsTyping(false);
+      setRevealedBubbles((current) => [...current, bubble]);
+      await delay(150);
     }
-
-    return [
-      ...messages,
-      {
-        id: "streaming",
-        role: "assistant" as const,
-        content: streamingMessage,
-        createdAt: new Date().toISOString(),
-      },
-    ];
-  }, [messages, streamingMessage]);
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!draft.trim()) {
+    if (!draft.trim() || submitting) {
       return;
     }
 
     setSubmitting(true);
     setError(null);
-    setStreamingMessage("");
+    setRevealedBubbles([]);
 
     const optimisticMessage: Message = {
       id: crypto.randomUUID(),
@@ -74,6 +118,8 @@ export function ChatRoom({ chatId, characterName, initialMessages }: ChatRoomPro
         throw new Error(payload.error?.message || "Failed to send message.");
       }
 
+      setIsTyping(true);
+
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let assistantText = "";
@@ -86,10 +132,13 @@ export function ChatRoom({ chatId, characterName, initialMessages }: ChatRoomPro
         }
 
         assistantText += decoder.decode(value, { stream: true });
-        setStreamingMessage(assistantText);
       }
 
-      if (assistantText.trim()) {
+      const bubbles = splitIntoBubbles(assistantText);
+
+      if (bubbles.length) {
+        await revealBubbles(bubbles);
+
         setMessages((current) => [
           ...current,
           {
@@ -101,62 +150,87 @@ export function ChatRoom({ chatId, characterName, initialMessages }: ChatRoomPro
         ]);
       }
 
-      setStreamingMessage("");
+      setIsTyping(false);
+      setRevealedBubbles([]);
     } catch (messageError) {
       setError(messageError instanceof Error ? messageError.message : "Failed to send message.");
       setMessages((current) => current.filter((message) => message.id !== optimisticMessage.id));
       setDraft(content);
-      setStreamingMessage("");
+      setIsTyping(false);
+      setRevealedBubbles([]);
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div>
-      <section>
-        <h2>Conversation</h2>
-        <p>Streaming replies from {characterName}</p>
-        <div style={{ marginTop: "20px" }}>
-          {renderedMessages.length ? (
-            renderedMessages.map((message) => (
-              <article
-                key={message.id}
-                style={{
-                  border: "1px solid #ccc",
-                  padding: "10px",
-                  margin: "10px 0",
-                  backgroundColor: message.role === "user" ? "#f9f9f9" : "#fff",
-                }}
+    <div className="flex flex-col">
+      <div className="flex max-h-[65vh] min-h-[40vh] flex-col gap-3 overflow-y-auto rounded-xl border border-gray-200 bg-white p-4">
+        {groups.length === 0 && !isTyping ? (
+          <p className="m-auto text-sm text-gray-400">Say hi to {characterName} to start texting.</p>
+        ) : (
+          groups.map((group) => (
+            <div
+              key={group.key}
+              className={`flex flex-col gap-1 ${group.role === "user" ? "items-end" : "items-start"}`}
+            >
+              {group.bubbles.map((bubble) => (
+                <div
+                  key={bubble.key}
+                  className={`max-w-[75%] whitespace-pre-wrap rounded-2xl px-4 py-2 text-sm ${
+                    group.role === "user"
+                      ? "rounded-br-sm bg-blue-600 text-white"
+                      : "rounded-bl-sm bg-gray-100 text-gray-900"
+                  }`}
+                >
+                  {bubble.text}
+                </div>
+              ))}
+            </div>
+          ))
+        )}
+
+        {revealedBubbles.length > 0 || isTyping ? (
+          <div className="flex flex-col items-start gap-1">
+            {revealedBubbles.map((bubble, index) => (
+              <div
+                key={index}
+                className="max-w-[75%] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-gray-100 px-4 py-2 text-sm text-gray-900"
               >
-                <p style={{ margin: "0 0 5px 0", fontSize: "0.8em", textTransform: "uppercase", color: "#666" }}>
-                  {message.role}
-                </p>
-                <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{message.content}</p>
-              </article>
-            ))
-          ) : (
-            <p>No messages yet. Start the conversation below.</p>
-          )}
-        </div>
-      </section>
-      <hr />
-      <section>
-        <form onSubmit={handleSubmit}>
-          <textarea
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            placeholder="Send a message"
-            rows={4}
-          />
-          {error ? <p style={{ color: "red" }}>{error}</p> : null}
-          <div style={{ marginTop: "10px" }}>
-            <button type="submit" disabled={submitting}>
-              {submitting ? "Streaming..." : "Send message"}
-            </button>
+                {bubble}
+              </div>
+            ))}
+            {isTyping ? <TypingIndicator /> : null}
           </div>
-        </form>
-      </section>
+        ) : null}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
+
+      <form onSubmit={handleSubmit} className="mt-3 flex items-end gap-2">
+        <textarea
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              event.currentTarget.form?.requestSubmit();
+            }
+          }}
+          placeholder="Text a message"
+          rows={1}
+          className="flex-1 resize-none rounded-2xl border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <button
+          type="submit"
+          disabled={submitting || !draft.trim()}
+          className="rounded-full bg-blue-600 px-5 py-2 text-sm font-medium text-white disabled:opacity-40"
+        >
+          Send
+        </button>
+      </form>
     </div>
   );
 }

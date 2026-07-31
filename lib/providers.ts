@@ -17,6 +17,10 @@ function normalizeBaseUrl(baseUrl: string) {
   return baseUrl.replace(/\/+$/, "");
 }
 
+function stripThinkingTags(text: string) {
+  return text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+}
+
 export function maskSecret(secret: string) {
   if (secret.length <= 8) {
     return "********";
@@ -203,9 +207,10 @@ export async function streamChatCompletion(options: StreamOptions) {
       onFinish: async ({ text, usage, finishReason }) => {
         const promptTokens = usage.inputTokens ?? null;
         const completionTokens = usage.outputTokens ?? null;
+        const assistantText = stripThinkingTags(text);
 
         await options.onComplete({
-          assistantText: text,
+          assistantText,
           promptTokens,
           completionTokens,
           finishReason: finishReason ?? null,
