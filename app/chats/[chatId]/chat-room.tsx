@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 
+import { markdownToHtml } from "@/lib/markdown";
 import { splitIntoBubbles, typingDelayMs } from "@/lib/texting";
 
 type Message = {
@@ -177,14 +178,13 @@ export function ChatRoom({ chatId, characterName, initialMessages }: ChatRoomPro
               {group.bubbles.map((bubble) => (
                 <div
                   key={bubble.key}
-                  className={`max-w-[75%] whitespace-pre-wrap rounded-2xl px-4 py-2 text-sm ${
+                  className={`max-w-[75%] whitespace-pre-wrap rounded-2xl px-4 py-2 text-sm [&_code]:rounded [&_code]:bg-black/10 [&_code]:px-1 [&_code]:font-mono [&_code]:text-[0.85em] ${
                     group.role === "user"
                       ? "rounded-br-sm bg-blue-600 text-white"
                       : "rounded-bl-sm bg-gray-100 text-gray-900"
                   }`}
-                >
-                  {bubble.text}
-                </div>
+                  dangerouslySetInnerHTML={{ __html: markdownToHtml(bubble.text) }}
+                />
               ))}
             </div>
           ))
@@ -195,10 +195,9 @@ export function ChatRoom({ chatId, characterName, initialMessages }: ChatRoomPro
             {revealedBubbles.map((bubble, index) => (
               <div
                 key={index}
-                className="max-w-[75%] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-gray-100 px-4 py-2 text-sm text-gray-900"
-              >
-                {bubble}
-              </div>
+                className="max-w-[75%] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-gray-100 px-4 py-2 text-sm text-gray-900 [&_code]:rounded [&_code]:bg-black/10 [&_code]:px-1 [&_code]:font-mono [&_code]:text-[0.85em]"
+                dangerouslySetInnerHTML={{ __html: markdownToHtml(bubble) }}
+              />
             ))}
             {isTyping ? <TypingIndicator /> : null}
           </div>
