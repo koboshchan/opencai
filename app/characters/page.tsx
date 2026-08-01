@@ -43,6 +43,9 @@ export default async function CharactersPage() {
             </p>
           </div>
           <div>
+            <Link href="/profile" style={{ marginRight: "15px" }}>
+              Profile
+            </Link>
             {viewer.user.isAdmin ? (
               <Link href="/admin/models" style={{ marginRight: "15px" }}>
                 Admin models
