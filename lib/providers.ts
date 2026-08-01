@@ -179,17 +179,17 @@ function buildProviderOptions(
   model: ProviderModelDocument,
   reasoning?: "none" | "low" | "medium" | "high" | "xhigh",
 ) {
-  const modelOptions: { reasoningEffort?: string; params?: { think: boolean } } = {};
+  const params: { think?: boolean; reasoning_effort?: string } = {};
+
+  if (model.thinkEnabled === false || reasoning === "none") {
+    params.think = false;
+  }
 
   if (reasoning) {
-    modelOptions.reasoningEffort = reasoning;
+    params.reasoning_effort = reasoning;
   }
 
-  if (model.thinkEnabled === false) {
-    modelOptions.params = { think: false };
-  }
-
-  return Object.keys(modelOptions).length ? { [provider.name]: modelOptions } : undefined;
+  return Object.keys(params).length ? { [provider.name]: { params } } : undefined;
 }
 
 interface StreamOptions {
