@@ -47,6 +47,7 @@ export default async function AdminModelsPage() {
           remoteModelId: model.remoteModelId,
           displayName: model.displayName,
           isEnabled: model.isEnabled,
+          thinkEnabled: model.thinkEnabled ?? true,
           syncedAt: model.syncedAt.toISOString(),
         }))}
       />

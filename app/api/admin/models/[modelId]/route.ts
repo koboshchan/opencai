@@ -40,6 +40,10 @@ export async function PATCH(
       updatePayload.displayName = payload.displayName;
     }
 
+    if (typeof payload.thinkEnabled === "boolean") {
+      updatePayload.thinkEnabled = payload.thinkEnabled;
+    }
+
     await db.collection<ProviderModelDocument>("providerModels").updateOne(
       { _id: model._id },
       { $set: updatePayload },

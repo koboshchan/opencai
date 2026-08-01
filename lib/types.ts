@@ -79,6 +79,8 @@ export interface ProviderModelDocument {
   remoteModelId: string;
   displayName: string;
   isEnabled: boolean;
+  /** Whether this model is allowed to think/reason. Defaults to true when unset. */
+  thinkEnabled?: boolean;
   capabilities: string[];
   rawMetadata?: Record<string, unknown>;
   syncedAt: Date;

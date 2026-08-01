@@ -60,6 +60,7 @@ export const providerUpdateSchema = z
 export const providerModelUpdateSchema = z.object({
   displayName: z.string().trim().min(1).max(120).optional(),
   isEnabled: z.boolean().optional(),
+  thinkEnabled: z.boolean().optional(),
 });
 
 export const paginationSchema = z.object({

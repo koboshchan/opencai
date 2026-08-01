@@ -18,6 +18,7 @@ type ModelRow = {
   remoteModelId: string;
   displayName: string;
   isEnabled: boolean;
+  thinkEnabled: boolean;
   syncedAt: string;
 };
 
@@ -236,6 +237,28 @@ export function AdminModelsConsole({
     );
   }
 
+  async function handleToggleThink(modelId: string, thinkEnabled: boolean) {
+    setError(null);
+
+    const response = await fetch(`/api/admin/models/${modelId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ thinkEnabled }),
+    });
+    const payload = await response.json();
+
+    if (!response.ok) {
+      setError(payload.error?.message || "Failed to update model.");
+      return;
+    }
+
+    setModels((current) =>
+      current.map((model) => (model.id === modelId ? { ...model, thinkEnabled } : model)),
+    );
+  }
+
   return (
     <div style={{ display: "flex", gap: "20px", marginTop: "20px" }}>
       <div style={{ flex: 1 }}>
@@ -349,7 +372,7 @@ export function AdminModelsConsole({
         </p>
         <div style={{ marginTop: "15px" }}>
           {models.map((model) => (
-            <label
+            <div
               key={model.id}
               style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid #ddd", padding: "10px", marginBottom: "10px" }}
             >
@@ -359,13 +382,26 @@ export function AdminModelsConsole({
                   {model.providerName} · {model.remoteModelId}
                 </p>
               </div>
-              <input
-                type="radio"
-                name="enabledModel"
-                checked={model.isEnabled}
-                onChange={() => handleToggleModel(model.id, !model.isEnabled)}
-              />
-            </label>
+              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.85em" }}>
+                  Think
+                  <input
+                    type="checkbox"
+                    checked={model.thinkEnabled}
+                    onChange={() => handleToggleThink(model.id, !model.thinkEnabled)}
+                  />
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.85em" }}>
+                  Enabled
+                  <input
+                    type="radio"
+                    name="enabledModel"
+                    checked={model.isEnabled}
+                    onChange={() => handleToggleModel(model.id, !model.isEnabled)}
+                  />
+                </label>
+              </div>
+            </div>
           ))}
           {!models.length ? (
             <p>No synced models yet.</p>

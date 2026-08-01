@@ -158,6 +158,7 @@ export async function syncProviderModels(provider: ProviderDocument & { _id: Obj
             providerId: provider._id,
             remoteModelId: model.id,
             isEnabled: false,
+            thinkEnabled: true,
             capabilities: [],
           },
         },
@@ -171,6 +172,24 @@ export async function syncProviderModels(provider: ProviderDocument & { _id: Obj
     .find({ providerId: provider._id })
     .sort({ remoteModelId: 1 })
     .toArray();
+}
+
+function buildProviderOptions(
+  provider: ProviderDocument,
+  model: ProviderModelDocument,
+  reasoning?: "none" | "low" | "medium" | "high" | "xhigh",
+) {
+  const modelOptions: { reasoningEffort?: string; params?: { think: boolean } } = {};
+
+  if (reasoning) {
+    modelOptions.reasoningEffort = reasoning === "high" ? "high" : "low";
+  }
+
+  if (model.thinkEnabled === false) {
+    modelOptions.params = { think: false };
+  }
+
+  return Object.keys(modelOptions).length ? { [provider.name]: modelOptions } : undefined;
 }
 
 interface StreamOptions {
@@ -199,11 +218,7 @@ export async function streamChatCompletion(options: StreamOptions) {
     const result = streamText({
       model: aiProvider(options.model.remoteModelId),
       messages: options.messages,
-      providerOptions: options.reasoning ? {
-        [options.provider.name]: {
-          reasoningEffort: options.reasoning === "high" ? "high" : "low"
-        }
-      } : undefined,
+      providerOptions: buildProviderOptions(options.provider, options.model, options.reasoning),
       onFinish: async ({ text, usage, finishReason }) => {
         const promptTokens = usage.inputTokens ?? null;
         const completionTokens = usage.outputTokens ?? null;
@@ -262,6 +277,7 @@ export async function generateChatSummary(options: {
     const { text } = await generateText({
       model: aiProvider(options.model.remoteModelId),
       prompt: options.prompt,
+      providerOptions: buildProviderOptions(options.provider, options.model),
     });
 
     return text;

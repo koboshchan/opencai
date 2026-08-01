@@ -31,6 +31,7 @@ export async function GET() {
         remoteModelId: model.remoteModelId,
         displayName: model.displayName,
         isEnabled: model.isEnabled,
+        thinkEnabled: model.thinkEnabled ?? true,
         capabilities: model.capabilities,
         syncedAt: model.syncedAt.toISOString(),
         updatedAt: model.updatedAt.toISOString(),
