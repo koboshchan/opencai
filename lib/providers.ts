@@ -182,7 +182,7 @@ function buildProviderOptions(
   const modelOptions: { reasoningEffort?: string; params?: { think: boolean } } = {};
 
   if (reasoning) {
-    modelOptions.reasoningEffort = reasoning === "high" ? "high" : "low";
+    modelOptions.reasoningEffort = reasoning;
   }
 
   if (model.thinkEnabled === false) {
