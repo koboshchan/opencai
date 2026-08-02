@@ -136,9 +136,9 @@ export function CharactersDashboard({
   }
 
   return (
-    <div style={{ display: "flex", gap: "20px", marginTop: "20px" }}>
-      <section style={{ flex: 1.2 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+    <div className="mt-5 flex flex-col gap-5 md:flex-row">
+      <section className="md:flex-[1.2]">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2>Browse characters</h2>
             <p>
@@ -152,6 +152,7 @@ export function CharactersDashboard({
             onChange={(event) => setSearch(event.target.value)}
             onBlur={() => refreshCharacters(search)}
             placeholder="Search by name or tag"
+            className="sm:w-auto"
           />
         </div>
         <div>
@@ -160,7 +161,7 @@ export function CharactersDashboard({
               key={character.id}
               style={{ border: "1px solid #ccc", padding: "15px", marginBottom: "15px" }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                     <h3>{character.name}</h3>
@@ -180,11 +181,10 @@ export function CharactersDashboard({
                     </div>
                   ) : null}
                 </div>
-                <div>
+                <div className="flex gap-2 sm:shrink-0">
                   <button onClick={() => handleStartChat(character.id)}>
                     Start chat
                   </button>
-                  {" "}
                   {character.isOwner || isAdmin ? (
                     <button onClick={() => handleDeleteCharacter(character.id)}>
                       Delete
@@ -197,7 +197,7 @@ export function CharactersDashboard({
         </div>
       </section>
 
-      <section style={{ flex: 0.8, borderLeft: "1px solid #ccc", paddingLeft: "20px" }}>
+      <section className="md:flex-[0.8] md:border-l md:border-[#ccc] md:pl-5">
         <h2>Create a character</h2>
         <p>
           Characters store a system prompt and can be kept private or shared publicly.

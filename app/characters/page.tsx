@@ -34,7 +34,7 @@ export default async function CharactersPage() {
   return (
     <main>
       <header>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <strong>OpenCai</strong>
             <h1>Characters</h1>

@@ -260,7 +260,7 @@ export function AdminModelsConsole({
   }
 
   return (
-    <div style={{ display: "flex", gap: "20px", marginTop: "20px" }}>
+    <div className="mt-5 flex flex-col gap-5 md:flex-row">
       <div style={{ flex: 1 }}>
         <section style={{ border: "1px solid #ccc", padding: "15px", marginBottom: "20px" }}>
           <h2>Character AI Token</h2>
@@ -365,7 +365,7 @@ export function AdminModelsConsole({
         </section>
       </div>
 
-      <section style={{ flex: 1, borderLeft: "1px solid #ccc", paddingLeft: "20px" }}>
+      <section className="md:flex-1 md:border-l md:border-[#ccc] md:pl-5">
         <h2>Available models</h2>
         <p>
           Sync a provider, then enable only the models you want users to access.
@@ -374,7 +374,8 @@ export function AdminModelsConsole({
           {models.map((model) => (
             <div
               key={model.id}
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid #ddd", padding: "10px", marginBottom: "10px" }}
+              className="flex flex-wrap items-center justify-between gap-3"
+              style={{ border: "1px solid #ddd", padding: "10px", marginBottom: "10px" }}
             >
               <div>
                 <strong>{model.displayName}</strong>

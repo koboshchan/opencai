@@ -1,6 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { UserButton } from "@clerk/nextjs";
 
 import { markdownToHtml } from "@/lib/markdown";
 import { splitIntoBubbles, typingDelayMs } from "@/lib/texting";
@@ -165,8 +167,17 @@ export function ChatRoom({ chatId, characterName, initialMessages }: ChatRoomPro
   }
 
   return (
-    <div className="flex flex-col">
-      <div className="flex max-h-[65vh] min-h-[40vh] flex-col gap-3 overflow-y-auto rounded-xl border border-gray-200 bg-white p-4">
+    <div className="flex flex-col max-md:fixed max-md:inset-0 max-md:z-50 max-md:bg-white">
+      {/* Compact sticky header, mobile only — the desktop header lives in page.tsx */}
+      <div className="flex shrink-0 items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 md:hidden">
+        <Link href="/characters" className="text-xl leading-none text-gray-600" aria-label="Back to characters">
+          &larr;
+        </Link>
+        <span className="flex-1 truncate font-semibold text-gray-900">{characterName}</span>
+        <UserButton />
+      </div>
+
+      <div className="flex flex-1 flex-col gap-3 overflow-y-auto max-md:px-4 max-md:py-3 md:max-h-[65vh] md:min-h-[40vh] md:rounded-xl md:border md:border-gray-200 md:bg-white md:p-4">
         {groups.length === 0 && !isTyping ? (
           <p className="m-auto text-sm text-gray-400">Say hi to {characterName} to start texting.</p>
         ) : (
@@ -178,7 +189,7 @@ export function ChatRoom({ chatId, characterName, initialMessages }: ChatRoomPro
               {group.bubbles.map((bubble) => (
                 <div
                   key={bubble.key}
-                  className={`max-w-[75%] whitespace-pre-wrap rounded-2xl px-4 py-2 text-sm [&_code]:rounded [&_code]:bg-black/10 [&_code]:px-1 [&_code]:font-mono [&_code]:text-[0.85em] ${
+                  className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2 text-sm md:max-w-[75%] [&_code]:rounded [&_code]:bg-black/10 [&_code]:px-1 [&_code]:font-mono [&_code]:text-[0.85em] ${
                     group.role === "user"
                       ? "rounded-br-sm bg-blue-600 text-white"
                       : "rounded-bl-sm bg-gray-100 text-gray-900"
@@ -195,7 +206,7 @@ export function ChatRoom({ chatId, characterName, initialMessages }: ChatRoomPro
             {revealedBubbles.map((bubble, index) => (
               <div
                 key={index}
-                className="max-w-[75%] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-gray-100 px-4 py-2 text-sm text-gray-900 [&_code]:rounded [&_code]:bg-black/10 [&_code]:px-1 [&_code]:font-mono [&_code]:text-[0.85em]"
+                className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-gray-100 px-4 py-2 text-sm text-gray-900 md:max-w-[75%] [&_code]:rounded [&_code]:bg-black/10 [&_code]:px-1 [&_code]:font-mono [&_code]:text-[0.85em]"
                 dangerouslySetInnerHTML={{ __html: markdownToHtml(bubble) }}
               />
             ))}
@@ -206,9 +217,12 @@ export function ChatRoom({ chatId, characterName, initialMessages }: ChatRoomPro
         <div ref={bottomRef} />
       </div>
 
-      {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="mx-4 mt-2 shrink-0 text-sm text-red-600 md:mx-0">{error}</p> : null}
 
-      <form onSubmit={handleSubmit} className="mt-3 flex items-end gap-2">
+      <form
+        onSubmit={handleSubmit}
+        className="flex shrink-0 items-end gap-2 border-t border-gray-200 bg-white px-4 py-3 pb-[max(env(safe-area-inset-bottom),12px)] md:mt-3 md:border-0 md:bg-transparent md:px-0 md:py-0 md:pb-0"
+      >
         <textarea
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
@@ -220,7 +234,7 @@ export function ChatRoom({ chatId, characterName, initialMessages }: ChatRoomPro
           }}
           placeholder="Text a message"
           rows={1}
-          className="flex-1 resize-none rounded-2xl border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 resize-none rounded-2xl border border-gray-300 px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 md:text-sm"
         />
         <button
           type="submit"

@@ -18,7 +18,7 @@ export default async function AdminModelsPage() {
 
   return (
     <main>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p>
             <Link href="/characters">Back to characters</Link>

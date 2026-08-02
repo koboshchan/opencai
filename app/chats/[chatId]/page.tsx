@@ -40,8 +40,8 @@ export default async function ChatPage({
   ]);
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-4 py-6">
-      <div className="flex items-center justify-between">
+    <main className="mx-auto flex max-w-2xl flex-col gap-4 md:py-6">
+      <div className="hidden items-center justify-between md:flex">
         <div>
           <Link href="/characters" className="text-sm text-gray-500 hover:underline">
             &larr; Back to characters
